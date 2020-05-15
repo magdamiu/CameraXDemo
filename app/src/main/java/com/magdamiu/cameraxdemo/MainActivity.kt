@@ -10,6 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
+import androidx.camera.extensions.BokehImageCaptureExtender
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
@@ -70,6 +71,12 @@ class MainActivity : AppCompatActivity() {
         setupImageAnalysis()
 
         setupImageCapture()
+
+        //val imageCaptureBuilder = ImageCapture.Builder()
+       /* val beautyImageCaptureExtender = BeautyImageCaptureExtender.create(image)
+        if (beautyImageCaptureExtender.isExtensionAvailable()) {
+            beautyImageCaptureExtender.enableExtension()
+        }*/
 
         var camera = cameraProvider.bindToLifecycle(
             this as LifecycleOwner,
