@@ -123,7 +123,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun setupImageCapture() {
-
             imageCapture = ImageCapture.Builder()
                 .setTargetRotation(Surface.ROTATION_0)
                 .build()
@@ -165,7 +164,9 @@ class MainActivity : AppCompatActivity() {
         val imageCaptureExtender = getImageCaptureExtender(type)
         if (imageCaptureExtender.isExtensionAvailable(cameraSelector)) {
             imageCaptureExtender.enableExtension(cameraSelector)
-            Log.e("CameraXDemo", "${type::class.simpleName} extension enabled")
+            Toast.makeText(this, "${type.simpleName} enabled", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "${type.simpleName} NOT available", Toast.LENGTH_LONG).show()
         }
     }
 
