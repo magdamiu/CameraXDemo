@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.Surface
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -122,8 +123,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun setupImageCapture() {
+
             imageCapture = ImageCapture.Builder()
-                .setTargetRotation(previewView.display.rotation)
+                .setTargetRotation(Surface.ROTATION_0)
                 .build()
 
             useCases.add(imageCapture)

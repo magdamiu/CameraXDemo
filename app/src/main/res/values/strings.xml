@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CameraXDemo</string>
+    <string name="app_name">CameraX Demo</string>
     <string name="back_camera">Back</string>
     <string name="front_camera">Front</string>
 </resources>
