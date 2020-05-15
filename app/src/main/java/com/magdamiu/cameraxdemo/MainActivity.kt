@@ -3,23 +3,20 @@ package com.magdamiu.cameraxdemo
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
 import android.util.Log
 import android.util.Size
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.common.util.concurrent.ListenableFuture
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
@@ -28,15 +25,19 @@ import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
+
     private lateinit var previewView: PreviewView
     private lateinit var helperTextView: TextView
-    private lateinit var executor: Executor
+
+    private lateinit var imageCapture: ImageCapture
+    private lateinit var imageAnalysis: ImageAnalysis
+    private lateinit var cameraExecutor: Executor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        executor = ContextCompat.getMainExecutor(this)
+        cameraExecutor = ContextCompat.getMainExecutor(this)
 
         previewView = findViewById(R.id.preview)
         helperTextView = findViewById(R.id.helperTextView)
@@ -55,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         cameraProviderFuture.addListener(Runnable {
             val cameraProvider = cameraProviderFuture.get()
             bindPreview(cameraProvider)
-        }, executor)
+        }, cameraExecutor)
     }
 
     private fun bindPreview(cameraProvider: ProcessCameraProvider) {
@@ -66,25 +67,57 @@ class MainActivity : AppCompatActivity() {
             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
             .build()
 
+        setupImageAnalysis()
+
+        setupImageCapture()
+
         var camera = cameraProvider.bindToLifecycle(
             this as LifecycleOwner,
             cameraSelector,
-            setupImageAnalysis(),
+            imageCapture,
+            imageAnalysis,
             preview
         )
 
         preview.setSurfaceProvider(previewView.createSurfaceProvider(camera.cameraInfo))
     }
 
-    private fun setupImageAnalysis(): ImageAnalysis {
-        val imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(1280, 720))
+    private fun setupImageAnalysis() {
+        imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
 
-        imageAnalysis.setAnalyzer(executor, PurpleColorAnalyser())
+        imageAnalysis.setAnalyzer(cameraExecutor, PurpleColorAnalyser())
+    }
 
-        return imageAnalysis;
+    private fun setupImageCapture() {
+        imageCapture = ImageCapture.Builder()
+            .setTargetRotation(previewView.display.rotation)
+            .build()
+    }
+
+    fun captureImageOnClick(view: View) {
+        val file = File(
+            externalMediaDirs.first(),
+            "${System.currentTimeMillis()}.jpg"
+        )
+        val outputFileOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+
+        imageCapture.takePicture(outputFileOptions, cameraExecutor,
+            object : ImageCapture.OnImageSavedCallback {
+
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                    val msg = "Photo capture succeeded: ${file.absolutePath}"
+                    Log.e("CameraXApp", msg)
+                    helperTextView.append("\n$msg")
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    val msg = "Photo capture failed: ${exception.message}"
+                    Log.e("CameraXApp", msg)
+                    helperTextView.append("\n$msg")
+                }
+            })
     }
 
     override fun onRequestPermissionsResult(
@@ -124,18 +157,17 @@ class MainActivity : AppCompatActivity() {
 
         override fun analyze(image: ImageProxy) {
             val currentTimestamp = System.currentTimeMillis()
-            if (currentTimestamp - lastAnalyzedTimestamp >=
-                TimeUnit.SECONDS.toMillis(1)
-            ) {
+            val oneSecond = TimeUnit.SECONDS.toMillis(1)
+            if (currentTimestamp - lastAnalyzedTimestamp >= oneSecond) {
                 val buffer = image.planes[0].buffer
                 val data = buffer.toByteArray()
                 val pixels = data.map { it.toInt() and 0x9370DB }
                 var averagePurplePixels = pixels.average()
-
                 helperTextView.text = "Average purple pixels: $averagePurplePixels"
-                //Log.e("PURPLE", "Average purple pixels: $averagePurplePixels")
+                Log.e("PURPLE", "Average purple pixels: $averagePurplePixels")
                 lastAnalyzedTimestamp = currentTimestamp
             }
+            image.close()
         }
     }
 }
