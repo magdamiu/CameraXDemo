@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.OrientationEventListener
 import android.view.Surface
 import android.view.View
 import android.widget.*
@@ -123,9 +124,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         fun setupImageCapture() {
-            imageCapture = ImageCapture.Builder()
-                .setTargetRotation(Surface.ROTATION_0)
-                .build()
+            imageCapture = ImageCapture.Builder().build()
+
+            val orientationEventListener = object : OrientationEventListener(this as Context) {
+                override fun onOrientationChanged(orientation: Int) {
+                    val rotation: Int = when (orientation) {
+                        in 45..134 -> Surface.ROTATION_270
+                        in 135..224 -> Surface.ROTATION_180
+                        in 225..314 -> Surface.ROTATION_90
+                        else -> Surface.ROTATION_0
+                    }
+
+                    imageCapture.targetRotation = rotation
+                }
+            }
+            orientationEventListener.enable()
 
             useCases.add(imageCapture)
         }
